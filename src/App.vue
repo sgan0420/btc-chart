@@ -1,23 +1,90 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import axios from 'axios'
 
 // Reactive data
 const currentPrice = ref('Loading...')
 const priceChange = ref(0)
 const selectedTimeframe = ref('1D')
+const chartType = ref('candlestick')
+const isLoading = ref(true)
+const lastUpdate = ref(null)
 
 // Timeframe options
 const timeframes = ['1H', '4H', '1D', '1W', '1M']
 
-// Functions (will be implemented later)
+let priceUpdateInterval = null
+
+// Format price for display
+const formatPrice = (price) => {
+  const num = parseFloat(price)
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(2) + 'M'
+  } else if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K'
+  } else if (num >= 1) {
+    return num.toLocaleString('en-US', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    })
+  } else {
+    return num.toFixed(6)
+  }
+}
+
+// Fetch current price from Binance
+const fetchCurrentPrice = async () => {
+  try {
+    const response = await axios.get('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT')
+    const data = response.data
+    
+    currentPrice.value = '$' + formatPrice(data.lastPrice)
+    priceChange.value = parseFloat(data.priceChangePercent)
+    lastUpdate.value = new Date()
+    isLoading.value = false
+    
+    console.log('Price updated:', {
+      price: data.lastPrice,
+      change: data.priceChangePercent,
+      time: new Date().toLocaleTimeString()
+    })
+    
+  } catch (error) {
+    console.error('Error fetching current price:', error)
+    currentPrice.value = 'Error loading price'
+    isLoading.value = false
+  }
+}
+
+// Functions
 const selectTimeframe = (timeframe) => {
   selectedTimeframe.value = timeframe
   console.log('Selected timeframe:', timeframe)
 }
 
-const refreshChart = () => {
-  console.log('Refreshing chart...')
+const refreshChart = async () => {
+  console.log('Refreshing price...')
+  isLoading.value = true
+  await fetchCurrentPrice()
 }
+
+// Initialize data and set up auto-refresh
+onMounted(async () => {
+  console.log('App mounted, fetching initial price...')
+  await fetchCurrentPrice()
+  
+  // Set up auto-refresh every 30 seconds
+  priceUpdateInterval = setInterval(async () => {
+    await fetchCurrentPrice()
+  }, 30000)
+})
+
+// Cleanup on unmount
+onUnmounted(() => {
+  if (priceUpdateInterval) {
+    clearInterval(priceUpdateInterval)
+  }
+})
 </script>
 
 <template>
@@ -27,19 +94,20 @@ const refreshChart = () => {
       <div class="header-content">
         <div class="logo-section">
           <h1 class="logo">₿TC Chart</h1>
-          <span class="subtitle">Real-time Bitcoin Trading Chart</span>
-        </div>
-        <div class="price-section">
-          <div class="price">{{ currentPrice }}</div>
-          <div class="price-change" :class="{ positive: priceChange > 0, negative: priceChange < 0 }">
-            {{ priceChange > 0 ? '+' : '' }}{{ priceChange.toFixed(2) }}%
-          </div>
         </div>
       </div>
     </header>
 
     <!-- Main Content -->
     <main class="main-content">
+      <!-- Price Section -->
+      <div class="price-section">
+        <span class="price">{{ currentPrice }}</span>
+        <span class="price-change" :class="{ positive: priceChange > 0, negative: priceChange < 0, zero: priceChange === 0 }">
+          {{ priceChange > 0 ? '+' : '' }}{{ priceChange.toFixed(2) }}%
+        </span>
+      </div>
+
       <!-- Chart Controls -->
       <div class="chart-controls">
         <div class="timeframe-buttons">
@@ -48,10 +116,16 @@ const refreshChart = () => {
             {{ timeframe }}
           </button>
         </div>
-        <button @click="refreshChart" class="refresh-btn">
-          <span class="refresh-icon">⟳</span>
-          Refresh
-        </button>
+        <div class="control-buttons">
+          <select v-model="chartType" class="chart-type-select">
+            <option value="candlestick">📊 Candlestick</option>
+            <option value="line">📈 Line Chart</option>
+          </select>
+          <button @click="refreshChart" class="refresh-btn">
+            <span class="refresh-icon">⟳</span>
+            Refresh
+          </button>
+        </div>
       </div>
 
       <!-- Chart Container -->
@@ -59,25 +133,9 @@ const refreshChart = () => {
         <div class="chart-placeholder">
           <div class="placeholder-content">
             <div class="chart-icon">📈</div>
-            <h3>Bitcoin Candlestick Chart</h3>
+            <h3>Bitcoin Chart</h3>
             <p>Chart will be displayed here</p>
           </div>
-        </div>
-      </div>
-
-      <!-- Chart Info -->
-      <div class="chart-info">
-        <div class="info-item">
-          <span class="label">Pair:</span>
-          <span class="value">BTC/USD</span>
-        </div>
-        <div class="info-item">
-          <span class="label">Source:</span>
-          <span class="value">CoinGecko</span>
-        </div>
-        <div class="info-item">
-          <span class="label">Timeframe:</span>
-          <span class="value">{{ selectedTimeframe }}</span>
         </div>
       </div>
     </main>
@@ -101,6 +159,7 @@ const refreshChart = () => {
   flex-direction: column;
   background: #1a1a1a;
   color: #ffffff;
+  overflow: hidden;
 }
 
 /* Header Styles */
@@ -108,9 +167,7 @@ const refreshChart = () => {
   background: #2a2a2a;
   border-bottom: 1px solid #404040;
   padding: 1rem 0;
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  flex-shrink: 0;
 }
 
 .header-content {
@@ -118,13 +175,8 @@ const refreshChart = () => {
   margin: 0 auto;
   padding: 0 1rem;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-}
-
-.logo-section {
-  display: flex;
-  flex-direction: column;
 }
 
 .logo {
@@ -135,35 +187,6 @@ const refreshChart = () => {
   text-shadow: 0 0 10px rgba(247, 147, 26, 0.3);
 }
 
-.subtitle {
-  font-size: 0.9rem;
-  color: #888;
-  margin-top: 0.2rem;
-}
-
-.price-section {
-  text-align: right;
-}
-
-.price {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #fff;
-}
-
-.price-change {
-  font-size: 1rem;
-  margin-top: 0.2rem;
-}
-
-.price-change.positive {
-  color: #00ff88;
-}
-
-.price-change.negative {
-  color: #ff4444;
-}
-
 /* Main Content */
 .main-content {
   flex: 1;
@@ -172,6 +195,51 @@ const refreshChart = () => {
   padding: 2rem 1rem;
   width: 100%;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Price Section */
+.price-section {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.price {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #fff;
+  margin: 0;
+}
+
+.price-change {
+  font-size: 1rem;
+  margin: 0;
+  padding: 0.2rem 0.4rem;
+  border-radius: 6px;
+  font-weight: 600;
+  min-width: 60px;
+  text-align: center;
+}
+
+.price-change.positive {
+  color: #ffffff;
+  background-color: #00ff88;
+}
+
+.price-change.negative {
+  color: #ffffff;
+  background-color: #ff4444;
+}
+
+.price-change.zero {
+  color: #ffffff;
+  background-color: #666666;
 }
 
 /* Chart Controls */
@@ -190,7 +258,14 @@ const refreshChart = () => {
   flex-wrap: wrap;
 }
 
-.timeframe-btn {
+.control-buttons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.timeframe-btn,
+.refresh-btn {
   background: #3a3a3a;
   border: 1px solid #555;
   color: #fff;
@@ -199,40 +274,61 @@ const refreshChart = () => {
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 0.9rem;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
 }
 
-.timeframe-btn:hover {
+.refresh-btn {
+  background: #00c97a;
+  border: 1px solid #00c97a;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.refresh-btn:hover {
+  background: #00e68a;
+  border-color: #00e68a;
+}
+
+.chart-type-select {
+  background: #3a3a3a;
+  border: 1px solid #555;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  min-height: 40px;
+  min-width: 140px;
+}
+
+.chart-type-select:focus,
+.timeframe-btn:hover,
+.refresh-btn:hover {
   background: #4a4a4a;
   border-color: #f7931a;
+  outline: none;
 }
 
 .timeframe-btn.active {
   background: #f7931a;
   border-color: #f7931a;
   color: #000;
-  font-weight: bold;
-}
-
-.refresh-btn {
-  background: #2a5934;
-  border: 1px solid #4a7c59;
-  color: #fff;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.refresh-btn:hover {
-  background: #4a7c59;
-  transform: translateY(-1px);
 }
 
 .refresh-icon {
-  font-size: 1.2rem;
+  font-size: 1rem;
 }
 
 /* Chart Container */
@@ -241,66 +337,39 @@ const refreshChart = () => {
   border: 1px solid #404040;
   border-radius: 12px;
   padding: 2rem;
-  margin-bottom: 2rem;
-  min-height: 400px;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: 0;
+  margin-bottom: 1rem;
 }
 
 .chart-placeholder {
   text-align: center;
-  color: #888;
+  width: 100%;
 }
 
 .placeholder-content {
-  max-width: 300px;
+  color: #888;
 }
 
 .chart-icon {
   font-size: 4rem;
   margin-bottom: 1rem;
+  opacity: 0.7;
 }
 
-.chart-placeholder h3 {
-  margin: 0 0 1rem 0;
+.placeholder-content h3 {
+  margin: 0.5rem 0;
   color: #fff;
+  font-size: 1.2rem;
 }
 
-.chart-placeholder p {
+.placeholder-content p {
   margin: 0;
-  font-size: 0.9rem;
-}
-
-/* Chart Info */
-.chart-info {
-  display: flex;
-  justify-content: space-around;
-  background: #2a2a2a;
-  border: 1px solid #404040;
-  border-radius: 8px;
-  padding: 1rem;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.info-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.label {
-  font-size: 0.8rem;
   color: #888;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.value {
-  font-weight: bold;
-  color: #fff;
+  font-size: 0.9rem;
 }
 
 /* Footer */
@@ -308,7 +377,7 @@ const refreshChart = () => {
   background: #2a2a2a;
   border-top: 1px solid #404040;
   padding: 1.5rem 0;
-  margin-top: auto;
+  flex-shrink: 0;
 }
 
 .footer-content {
@@ -346,36 +415,39 @@ const refreshChart = () => {
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
-  .header-content {
-    flex-direction: column;
-    gap: 1rem;
-    text-align: center;
+  .main-content {
+    padding: 1rem;
   }
 
-  .logo {
-    font-size: 1.5rem;
+  .price-section {
+    gap: 1rem;
   }
 
   .price {
-    font-size: 1.3rem;
+    font-size: 1.8rem;
+  }
+
+  .price-change {
+    font-size: 0.9rem;
+    padding: 0.2rem 0.4rem;
   }
 
   .chart-controls {
     flex-direction: column;
     align-items: stretch;
+    gap: 1rem;
   }
 
   .timeframe-buttons {
     justify-content: center;
   }
 
-  .chart-container {
-    padding: 1rem;
-    min-height: 300px;
+  .control-buttons {
+    justify-content: center;
   }
 
-  .chart-info {
-    flex-direction: column;
+  .chart-container {
+    padding: 1.5rem;
   }
 
   .footer-content {
@@ -393,18 +465,43 @@ const refreshChart = () => {
     padding: 1rem 0.5rem;
   }
 
+  .price-section {
+    gap: 0.8rem;
+    flex-wrap: wrap;
+  }
+
+  .price {
+    font-size: 1.6rem;
+  }
+
+  .price-change {
+    font-size: 0.8rem;
+    padding: 0.15rem 0.3rem;
+    min-width: 50px;
+  }
+
   .timeframe-btn,
-  .refresh-btn {
+  .refresh-btn,
+  .chart-type-select {
     padding: 0.4rem 0.8rem;
     font-size: 0.8rem;
+    min-height: 36px;
+  }
+
+  .chart-type-select {
+    min-width: 120px;
   }
 
   .logo {
-    font-size: 1.3rem;
+    font-size: 1.5rem;
   }
 
   .chart-icon {
     font-size: 3rem;
+  }
+
+  .chart-container {
+    padding: 1rem;
   }
 }
 </style>
