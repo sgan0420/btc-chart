@@ -27,7 +27,7 @@ const timeframes = [
 const chartOptions = computed(() => ({
   chart: {
     type: chartType.value,
-    height: 400,
+    height: '100%',
     background: 'transparent',
     toolbar: {
       show: true,
@@ -271,19 +271,20 @@ onMounted(async () => {
       <div class="header-content">
         <div class="logo-section">
           <h1 class="logo">₿TC Chart</h1>
-          <span class="subtitle">Real-time Bitcoin Trading Chart</span>
-        </div>
-        <div class="price-section">
-          <div class="price">{{ currentPrice }}</div>
-          <div class="price-change" :class="{ positive: priceChange > 0, negative: priceChange < 0 }">
-            {{ priceChange > 0 ? '+' : '' }}{{ priceChange.toFixed(2) }}%
-          </div>
         </div>
       </div>
     </header>
 
     <!-- Main Content -->
     <main class="main-content">
+      <!-- Price Section -->
+      <div class="price-section">
+        <span class="price">{{ currentPrice }}</span>
+        <span class="price-change" :class="{ positive: priceChange > 0, negative: priceChange < 0 }">
+          {{ priceChange > 0 ? '+' : '' }}{{ priceChange.toFixed(2) }}%
+        </span>
+      </div>
+
       <!-- Chart Controls -->
       <div class="chart-controls">
         <div class="timeframe-buttons">
@@ -319,7 +320,7 @@ onMounted(async () => {
             :type="chartType"
             :options="chartOptions"
             :series="[{ name: 'BTC/USDT', data: chartType === 'candlestick' ? chartData : lineChartData }]"
-            height="400"
+            height="100%"
           />
           <div class="last-update" v-if="lastUpdate">
             Last updated: {{ lastUpdate.toLocaleTimeString() }}
@@ -332,26 +333,6 @@ onMounted(async () => {
             <p>Please check your connection and try refreshing</p>
             <button @click="refreshChart" class="retry-btn">Retry</button>
           </div>
-        </div>
-      </div>
-
-      <!-- Chart Info -->
-      <div class="chart-info">
-        <div class="info-item">
-          <span class="label">Pair:</span>
-          <span class="value">BTC/USDT</span>
-        </div>
-        <div class="info-item">
-          <span class="label">Source:</span>
-          <span class="value">Binance</span>
-        </div>
-        <div class="info-item">
-          <span class="label">Type:</span>
-          <span class="value">{{ chartType === 'candlestick' ? 'Candlestick' : 'Line' }}</span>
-        </div>
-        <div class="info-item">
-          <span class="label">Timeframe:</span>
-          <span class="value">{{ selectedTimeframe }}</span>
         </div>
       </div>
     </main>
@@ -370,21 +351,23 @@ onMounted(async () => {
 
 <style scoped>
 .app {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   background: #1a1a1a;
   color: #ffffff;
+  overflow: hidden;
 }
 
 /* Header Styles */
 .header {
   background: #2a2a2a;
   border-bottom: 1px solid #404040;
-  padding: 1rem 0;
+  padding: 0.8rem 0;
   position: sticky;
   top: 0;
   z-index: 100;
+  flex-shrink: 0;
 }
 
 .header-content {
@@ -392,13 +375,14 @@ onMounted(async () => {
   margin: 0 auto;
   padding: 0 1rem;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
 }
 
 .logo-section {
   display: flex;
   flex-direction: column;
+  text-align: center;
 }
 
 .logo {
@@ -409,33 +393,36 @@ onMounted(async () => {
   text-shadow: 0 0 10px rgba(247, 147, 26, 0.3);
 }
 
-.subtitle {
-  font-size: 0.9rem;
-  color: #888;
-  margin-top: 0.2rem;
-}
-
+/* Price Section */
 .price-section {
-  text-align: right;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-shrink: 0;
 }
 
 .price {
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   font-weight: bold;
   color: #fff;
 }
 
 .price-change {
   font-size: 1rem;
-  margin-top: 0.2rem;
+  font-weight: bold;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
 }
 
 .price-change.positive {
   color: #00ff88;
+  background: rgba(0, 255, 136, 0.1);
 }
 
 .price-change.negative {
   color: #ff4444;
+  background: rgba(255, 68, 68, 0.1);
 }
 
 /* Main Content */
@@ -443,9 +430,13 @@ onMounted(async () => {
   flex: 1;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: 1rem;
   width: 100%;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
 }
 
 /* Chart Controls */
@@ -453,9 +444,10 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
   flex-wrap: wrap;
   gap: 1rem;
+  flex-shrink: 0;
 }
 
 .timeframe-buttons {
@@ -492,6 +484,7 @@ onMounted(async () => {
   gap: 0.5rem;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
 }
 
 .chart-type-dropdown {
@@ -563,16 +556,20 @@ onMounted(async () => {
   border: 1px solid #404040;
   border-radius: 12px;
   padding: 1rem;
-  margin-bottom: 2rem;
-  min-height: 450px;
+  margin-bottom: 1rem;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .chart-wrapper {
   width: 100%;
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .chart-loading, .chart-error {
@@ -657,43 +654,12 @@ onMounted(async () => {
   font-size: 0.9rem;
 }
 
-/* Chart Info */
-.chart-info {
-  display: flex;
-  justify-content: space-around;
-  background: #2a2a2a;
-  border: 1px solid #404040;
-  border-radius: 8px;
-  padding: 1rem;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.info-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.label {
-  font-size: 0.8rem;
-  color: #888;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.value {
-  font-weight: bold;
-  color: #fff;
-}
-
 /* Footer */
 .footer {
   background: #2a2a2a;
   border-top: 1px solid #404040;
-  padding: 1.5rem 0;
-  margin-top: auto;
+  padding: 1rem 0;
+  flex-shrink: 0;
 }
 
 .footer-content {
@@ -731,36 +697,60 @@ onMounted(async () => {
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
+  .header {
+    padding: 0.6rem 0;
+  }
+
   .header-content {
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.5rem;
     text-align: center;
   }
 
   .logo {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
+  }
+
+  .main-content {
+    padding: 0.8rem;
+  }
+
+  .price-section {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 0.8rem;
   }
 
   .price {
-    font-size: 1.3rem;
+    font-size: 1.4rem;
   }
 
   .chart-controls {
     flex-direction: column;
     align-items: stretch;
+    margin-bottom: 0.8rem;
+    gap: 0.8rem;
   }
 
   .timeframe-buttons {
     justify-content: center;
+    order: 2;
+  }
+
+  .control-buttons {
+    justify-content: center;
+    order: 1;
   }
 
   .chart-container {
-    padding: 1rem;
-    min-height: 300px;
+    padding: 0.8rem;
+    margin-bottom: 0.8rem;
   }
 
-  .chart-info {
-    flex-direction: column;
+  .footer {
+    padding: 0.8rem 0;
   }
 
   .footer-content {
@@ -775,21 +765,41 @@ onMounted(async () => {
 
 @media (max-width: 480px) {
   .main-content {
-    padding: 1rem 0.5rem;
-  }
-
-  .timeframe-btn,
-  .refresh-btn {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.8rem;
+    padding: 0.5rem;
   }
 
   .logo {
-    font-size: 1.3rem;
+    font-size: 1.2rem;
   }
 
-  .chart-icon {
-    font-size: 3rem;
+  .price {
+    font-size: 1.2rem;
+  }
+
+  .price-change {
+    font-size: 0.85rem;
+    padding: 0.2rem 0.4rem;
+  }
+
+  .timeframe-btn,
+  .refresh-btn,
+  .chart-type-select {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+    height: 32px;
+    box-sizing: border-box;
+  }
+
+  .chart-type-select {
+    min-width: 120px;
+  }
+
+  .chart-container {
+    padding: 0.5rem;
+  }
+
+  .footer {
+    padding: 0.6rem 0;
   }
 }
 </style>
