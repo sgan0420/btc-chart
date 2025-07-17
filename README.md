@@ -1,5 +1,22 @@
-# Vue 3 + Vite
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+# BTC Trading Chart
+
+This project is a Bitcoin trading chart built with Vue 3, Vite, Binance API, and ApexCharts. It provides interactive charting features for BTC price visualization, inspired by TradingView.
+
+## Features
+- Real-time BTC price chart using Binance API
+- Interactive and responsive UI with ApexCharts
+- Built with Vue 3 and Vite for fast development
+
+## Getting Started
+To run the project locally:
+
+```powershell
+npm install
+npm run dev
+```
+
+## Project Structure
+- `src/` - Main source code (Vue components, styles, assets)
+- `public/` - Static assets

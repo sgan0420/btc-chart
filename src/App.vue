@@ -20,7 +20,7 @@ const timeframes = [
   { label: '4H', interval: '4h', limit: 24 },
   { label: '1D', interval: '1d', limit: 30 },
   { label: '1W', interval: '1w', limit: 24 },
-  { label: '1M', interval: '1M', limit: 12 }
+  { label: '1M', interval: '1M', limit: 24 }
 ]
 
 // Chart configuration
