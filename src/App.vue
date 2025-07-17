@@ -102,6 +102,7 @@ onUnmounted(() => {
     <main class="main-content">
       <!-- Price Section -->
       <div class="price-section">
+        <span class="pair-label price">BTC/USD</span>
         <span class="price">{{ currentPrice }}</span>
         <span class="price-change" :class="{ positive: priceChange > 0, negative: priceChange < 0, zero: priceChange === 0 }">
           {{ priceChange > 0 ? '+' : '' }}{{ priceChange.toFixed(2) }}%
@@ -206,7 +207,6 @@ onUnmounted(() => {
   margin-bottom: 1.5rem;
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 1rem;
 }
 
@@ -240,6 +240,20 @@ onUnmounted(() => {
 .price-change.zero {
   color: #ffffff;
   background-color: #666666;
+}
+
+.pair-label {
+  font-size: 1.1rem;
+  color: #fff;
+  opacity: 0.7;
+  font-weight: 500;
+}
+
+.pair-label.price {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #fff;
+  letter-spacing: 0.5px;
 }
 
 /* Chart Controls */
@@ -421,6 +435,7 @@ onUnmounted(() => {
 
   .price-section {
     gap: 1rem;
+    justify-content: center;
   }
 
   .price {
